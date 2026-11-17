@@ -66,11 +66,14 @@ h1 em{font-style:italic}
   background-position:calc(100% - 17px) 52%,calc(100% - 12px) 52%;background-size:5px 5px;background-repeat:no-repeat}
 .search::placeholder{color:var(--stone)}
 .listwrap{display:flex;flex-direction:column;flex:1;min-height:0}
+.fact{font:italic 400 14px/1.45 var(--serif);color:var(--graphite);margin:14px 26px 0;padding:10px 14px;background:var(--marigold);border-radius:10px}
+.fact b{font:600 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;font-style:normal;display:block;margin-bottom:3px;color:var(--ink)}
 .count{font:500 12px var(--sans);color:var(--stone);margin:14px 26px 0}
 .list{margin:6px 0 0;padding:0 0 28px;overflow:auto;flex:1;min-height:0}
 .grp{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:12px 26px 8px;background:var(--canvas);
   font:700 12px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--c);border-bottom:1px solid var(--ash)}
 .grp span{color:var(--stone);font-weight:500}
+[hidden]{display:none!important}
 .row{display:grid;grid-template-columns:12px 1fr auto;gap:12px;align-items:center;padding:11px 26px;cursor:pointer;border-bottom:1px solid var(--ash)}
 .row:hover{background:var(--cloud)}
 .row.on{background:var(--white);box-shadow:inset 3px 0 0 var(--c)}
@@ -166,6 +169,7 @@ h1 em{font-style:italic}
       </div>
     </div>
     <div class="listwrap">
+      <p class="fact" id="fact" hidden></p>
       <div class="count" id="count"></div>
       <div class="list" id="list" role="listbox" aria-label="Hospitals"></div>
     </div>
@@ -237,7 +241,7 @@ const PALM=()=>`<path class="ink" fill="none" stroke-width="1.5" d="M0 0Q3 -18 -
         `<path d="${torn(236,14,190,84)}" ${F('marigold')} opacity=".85" transform="rotate(1.8 330 56)"/>`+
         `<circle cx="392" cy="40" r="13" ${F('papaya-soft')}/>`+
         `<path d="${torn(-6,108,452,26)}" ${F('mint')}/>`;
-  const row=[['lighthouse',34,1.4],['gopuram',82,1.5],['palm',122,1.35],['houseboat',180,1.4],['nets',268,1.4],['palm',312,1.1],['elephant',350,1.35],['uru',410,1.15]];
+  const row=[['lighthouse',22,1.3],['gopuram',58,1.35],['kathakali',100,1],['palm',136,1.2],['houseboat',186,1.2],['theyyam',246,.95],['nets',302,1.15],['palm',338,1],['elephant',368,1.2],['uru',418,1]];
   row.forEach(([id,x,k])=>{const m=LM.find(l=>l.id===id); o+=`<g transform="translate(${x} 112) scale(${k})">${m?m.svg():PALM()}</g>`});
   o+=`<path d="M-6 112.5H446" stroke="var(--ink)" stroke-width="1.1"/>`;
   sv.innerHTML=o;
@@ -455,7 +459,23 @@ function render(){
   if(ready) map.getSource('places').setData(fc());
 }
 document.getElementById('q').addEventListener('input',e=>{query=e.target.value.trim().toLowerCase();render()});
-document.getElementById('fArea').addEventListener('change',e=>{fArea=e.target.value;render()});
+const FACTS={
+ 'Thiruvananthapuram':"Kerala's first medical college opened here in 1951.",
+ 'Kollam':'Long known as the cashew capital of India.',
+ 'Pathanamthitta':'Home to Sabarimala, one of the largest annual pilgrimages in the world.',
+ 'Alappuzha':'The Nehru Trophy snake-boat race is rowed on Punnamada Lake every August.',
+ 'Kottayam':'In 1989 Kottayam became the first town in India to reach full literacy.',
+ 'Idukki':'The Idukki dam is one of the highest arch dams in Asia.',
+ 'Ernakulam':'Kochi airport was the first in the world to run entirely on solar power.',
+ 'Thrissur':"Hosts Thrissur Pooram, Kerala's grandest temple festival.",
+ 'Palakkad':"Kerala's rice bowl, sitting in the one wide gap in the Western Ghats.",
+ 'Malappuram':"Kerala's most populous district, and devoted to sevens football.",
+ 'Kozhikode':'Vasco da Gama landed at Kappad in 1498; UNESCO named Kozhikode a City of Literature in 2023.',
+ 'Wayanad':'The Edakkal Caves hold rock engravings thousands of years old.',
+ 'Kannur':"The land of Theyyam. India's first cake was baked in Thalassery in 1883.",
+ 'Kasaragod':'Bekal, on the coast here, is the largest fort in Kerala.'};
+function fact(){const el=document.getElementById('fact'), f=FACTS[fArea]; el.hidden=!f; if(f) el.innerHTML='<b>Did you know · '+esc(fArea)+'</b>'+esc(f)}
+document.getElementById('fArea').addEventListener('change',e=>{fArea=e.target.value;fact();render()});
 document.getElementById('fCu').addEventListener('change',e=>{fCu=e.target.value;render()});
 addEventListener('keydown',e=>{if(e.key==='Escape')select(null)});
 
