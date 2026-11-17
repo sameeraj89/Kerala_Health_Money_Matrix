@@ -342,7 +342,7 @@ function showCard(p){
   nearIds=alts.map(a=>a.q.i);
   card.innerHTML=`<button class="x" aria-label="Close">×</button>
     <span class="tag"><i class="dot ${shapeCls(C)}"></i>${C.label}</span>
-    <h2>${esc(p.n)}</h2><div class="area">${esc([p.cu,p.a].filter(Boolean).join(' · '))}</div>
+    <h2>${esc(p.n)}</h2><div class="area">${esc([p.cu,p.a,p.ap?'pin approximate':''].filter(Boolean).join(' · '))}</div>
     <dl>${p.o?`<dt>${{pe:'Backer',corp:'Owner',ind:'Owned by',trust:'Run by'}[p.c]}</dt><dd>${esc(p.o)}</dd>`:''}${p.y?`<dt>${p.c==='pe'||p.c==='corp'?'Since':'Founded'}</dt><dd>${esc(p.y)}</dd>`:''}${p.beds?`<dt>Beds</dt><dd>${Number(p.beds).toLocaleString('en-IN')}</dd>`:''}</dl>
     ${p.note?`<p>${esc(p.note)}</p>`:''}
     ${p.src?`<a target="_blank" rel="noopener" href="${esc(p.src)}">Source: ${esc(host)} ↗</a>`:''}
@@ -406,7 +406,7 @@ const groups={};
 });
 const emptyEl=document.createElement('div'); emptyEl.className='empty'; emptyEl.textContent='Nothing matches. Try another search or clear a filter.'; listEl.appendChild(emptyEl);
 const foot=document.createElement('div'); foot.className='foot';
-foot.textContent='Ownership as reported publicly, checked Nov 2026. Private hospitals only; government hospitals are not shown, and this is a selection, not a full register. "PE-backed" includes significant minority stakes and hospitals held through a PE-controlled parent. "Not-for-profit" covers charitable trusts, church missions and co-operatives. Bed counts are as published. Ownership changes fast; each card links its source. This is not a rating of care.';
+foot.textContent='Ownership as reported publicly, checked Nov 2026. Private hospitals only; government hospitals are not shown, and this is a selection, not a full register. "PE-backed" includes significant minority stakes and hospitals held through a PE-controlled parent. "Not-for-profit" covers charitable trusts, church missions and co-operatives; "family-owned" covers founding doctors, families and local business groups. Hospitals run under a lease or management contract are listed under their operator. Bed counts are as published. Ownership changes fast; each card links its source. This is not a rating of care.';
 listEl.appendChild(foot);
 const countEl=document.getElementById('count');
 

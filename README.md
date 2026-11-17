@@ -1,0 +1,11 @@
+# Kerala Health Money Matrix
+
+A map of who owns Kerala's private hospitals: private equity–backed, corporate, family-owned or not-for-profit. Every entry links a source.
+
+- `index.html` is the whole site (static; host it anywhere, for example Vercel or GitHub Pages).
+- `data/hospitals.json` holds the hospitals. Edit it, then run `python3 build.py` to regenerate `index.html`.
+- `src/template.html` is the page layout and map code.
+
+Each hospital has: `n` name, `a` locality and town, `area` district, `ll` [lat, lng], `cu` speciality, `k` type, `beds`, `c` category (`pe`, `corp`, `ind`, `trust`), `o` owner, `y` year, `note`, `src` source link, and `ap` when the map pin is approximate.
+
+Ownership is as reported publicly in November 2026 and was compiled from search-result summaries; check an entry's source before relying on it.
