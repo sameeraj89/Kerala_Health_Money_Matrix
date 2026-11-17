@@ -22,6 +22,7 @@
   --trust:var(--ink); --trust-soft:var(--mint-soft);
   --corp:#9C968F; --corp-soft:var(--cloud);
   --ind:var(--azure); --ind-soft:var(--peri-soft);
+  --unk:#A3968A; --unk-soft:var(--cloud);
   --shadow:0 1px 1px rgba(3,3,2,.04),0 4px 8px rgba(3,3,2,.04),0 16px 32px rgba(3,3,2,.06),0 32px 64px rgba(3,3,2,.06);
   --shadow-sm:0 1px 1px rgba(3,3,2,.05),0 4px 12px rgba(3,3,2,.06);
   --serif:"Lora",Georgia,"Times New Roman",serif;
@@ -151,7 +152,7 @@ h1 em{font-style:italic}
         <div class="stats">
           <button class="stat pe" data-g="pe" aria-pressed="true"><b id="nPe">0</b><span><i class="dot sq" style="--c:var(--pe)"></i>PE-backed</span></button>
           <button class="stat trust" data-g="trust" aria-pressed="true"><b id="nTrust">0</b><span><i class="dot" style="--c:var(--trust)"></i>Non-profit</span></button>
-          <button class="stat other" data-g="corp,ind" aria-pressed="true"><b id="nOther">0</b><span><i class="dot ring" style="--c:var(--corp)"></i>Corp &amp; family</span></button>
+          <button class="stat other" data-g="corp,ind,unk" aria-pressed="true"><b id="nOther">0</b><span><i class="dot ring" style="--c:var(--corp)"></i>Other private</span></button>
         </div>
         <div class="bar" id="bar"></div>
         <div class="hint">Tap a number to filter</div>
@@ -185,8 +186,9 @@ const CATS = {
   corp:  {label:"Corporate",      c:"--corp",  cs:"--corp-soft",  shape:"ring"},
   ind:   {label:"Family-owned",   c:"--ind",   cs:"--ind-soft",   shape:"dia"},
   trust: {label:"Not-for-profit", c:"--trust", cs:"--trust-soft", shape:"dot"},
+  unk:   {label:"Owner not recorded", c:"--unk", cs:"--unk-soft", shape:"dot"},
 };
-const ORDER={pe:0,corp:1,ind:2,trust:3};
+const ORDER={pe:0,corp:1,ind:2,trust:3,unk:4};
 
 /* n name · a locality, town · area district · ll [lat,lng] · cu speciality · k type · beds · c category · o owner · y year · note · src */
 const PLACES = /*__DATA__*/[];
@@ -234,12 +236,12 @@ const css=v=>`var(${v})`;
 const shapeCls=C=>C.shape==='sq'?'sq':C.shape==='ring'?'ring':C.shape==='dia'?'dia':'';
 const bedsHtml=n=>n?`<span class="price">${Number(n).toLocaleString('en-IN')} beds</span>`:'';
 const visible=p=>active.has(p.c) && (!fArea||p.area===fArea) && (!fCu||p.k===fCu) &&
-  (!query || [p.n,p.a,p.area,p.o,p.cu,p.k].join(' ').toLowerCase().includes(query));
+  (!query || [p.n,p.a,p.area,p.o,p.cu,p.k,p.le].join(' ').toLowerCase().includes(query));
 const isMobile=()=>innerWidth<=820;
 
 /* ---------- real map: MapLibre + OpenFreeMap tiles, restyled to the paper palette ---------- */
 const PAL={land:'#FBEEDF',park:'#CFEBD5',wood:'#D9EFDC',water:'#C5D5F6',road:'#FFFFFF',casing:'#EADBC9',rail:'#E2D3C1',
-  bldg:'#F3E5D3',label:'#6F6A64',hood:'#A39B92',waterLabel:'#6F86BC',pe:'#FF4500',ind:'#0087FF',corp:'#9C968F',trust:'#030302'};
+  bldg:'#F3E5D3',label:'#6F6A64',hood:'#A39B92',waterLabel:'#6F86BC',pe:'#FF4500',ind:'#0087FF',corp:'#9C968F',trust:'#030302',unk:'#A3968A'};
 function paper(style){
   style.layers=style.layers.filter(l=>!/^(boundary|highway-shield|road_shield|airport|label_country|label_state)/.test(l.id)&&l.source!=='ne2_shaded');
   delete style.sources.ne2_shaded;
@@ -273,6 +275,7 @@ function icon(kind){
   if(kind==='ind'){g.rotate(Math.PI/4);g.lineWidth=1.6;g.fillStyle=PAL.ind;g.beginPath();g.roundRect(-4.8,-4.8,9.6,9.6,1);g.fill();g.stroke()}
   if(kind==='corp'){g.beginPath();g.arc(0,0,5.2,0,7);g.fillStyle='#fff';g.fill();g.lineWidth=2.2;g.strokeStyle=PAL.corp;g.beginPath();g.arc(0,0,3.9,0,7);g.stroke()}
   if(kind==='trust'){g.beginPath();g.arc(0,0,4.4,0,7);g.fillStyle=PAL.trust;g.fill();g.lineWidth=1.4;g.stroke()}
+  if(kind==='unk'){g.beginPath();g.arc(0,0,3.6,0,7);g.fillStyle=PAL.unk;g.fill();g.lineWidth=1.2;g.stroke()}
   return {width:S*r,height:S*r,data:g.getImageData(0,0,S*r,S*r).data};
 }
 const START=()=>isMobile()?{center:[76.25,10.35],zoom:6.2,pitch:20,bearing:-6}:{center:[76.30,10.40],zoom:7.0,pitch:32,bearing:-10};
@@ -282,12 +285,12 @@ map.touchZoomRotate.disableRotation();
 map.once('idle',()=>{const a=document.querySelector('.maplibregl-ctrl-attrib');a&&a.classList.remove('maplibregl-compact-show')});
 let ready=false;
 const fc=()=>({type:'FeatureCollection',features:PLACES.map(p=>({type:'Feature',id:p.i,
-  geometry:{type:'Point',coordinates:[p.ll[1],p.ll[0]]},properties:{i:p.i,c:p.c,o:3-ORDER[p.c],v:visible(p)?1:0}}))});
+  geometry:{type:'Point',coordinates:[p.ll[1],p.ll[0]]},properties:{i:p.i,c:p.c,o:4-ORDER[p.c],v:visible(p)?1:0}}))});
 fetch('https://tiles.openfreemap.org/styles/positron').then(r=>r.json()).then(st=>{
   map.once('style.load',()=>{if(ready)return;
-    ['pe','ind','corp','trust'].forEach(k=>{const im=icon(k);map.addImage('pin-'+k,{width:im.width,height:im.height,data:new Uint8Array(im.data.buffer)},{pixelRatio:2})});
+    ['pe','ind','corp','trust','unk'].forEach(k=>{const im=icon(k);map.addImage('pin-'+k,{width:im.width,height:im.height,data:new Uint8Array(im.data.buffer)},{pixelRatio:2})});
     map.addSource('places',{type:'geojson',data:fc()});
-    const col=['match',['get','c'],'pe',PAL.pe,'ind',PAL.ind,'corp',PAL.corp,PAL.trust];
+    const col=['match',['get','c'],'pe',PAL.pe,'ind',PAL.ind,'corp',PAL.corp,'unk',PAL.unk,PAL.trust];
     map.addLayer({id:'halo-near',type:'circle',source:'places',filter:['in',['get','i'],['literal',[]]],paint:{'circle-radius':13,'circle-color':col,'circle-opacity':.16,'circle-pitch-alignment':'map'}});
     map.addLayer({id:'halo-on',type:'circle',source:'places',filter:['==',['get','i'],-1],paint:{'circle-radius':18,'circle-color':col,'circle-opacity':.25,'circle-stroke-width':1.5,'circle-stroke-color':col,'circle-stroke-opacity':.5}});
     map.addLayer({id:'pins',type:'symbol',source:'places',layout:{'icon-image':['concat','pin-',['get','c']],'icon-allow-overlap':true,'icon-ignore-placement':true,
@@ -344,9 +347,9 @@ function showCard(p){
   card.innerHTML=`<button class="x" aria-label="Close">×</button>
     <span class="tag"><i class="dot ${shapeCls(C)}"></i>${C.label}</span>
     <h2>${esc(p.n)}</h2><div class="area">${esc([p.cu,p.a,p.ap?'pin approximate':''].filter(Boolean).join(' · '))}</div>
-    <dl>${p.o?`<dt>${{pe:'Backer',corp:'Owner',ind:'Owned by',trust:'Run by'}[p.c]}</dt><dd>${esc(p.o)}</dd>`:''}${p.y?`<dt>${p.c==='pe'||p.c==='corp'?'Since':'Founded'}</dt><dd>${esc(p.y)}</dd>`:''}${p.beds?`<dt>Beds</dt><dd>${Number(p.beds).toLocaleString('en-IN')}</dd>`:''}</dl>
+    <dl>${p.o?`<dt>${{pe:'Backer',corp:'Owner',ind:'Owned by',trust:'Run by',unk:'Owner'}[p.c]}</dt><dd>${esc(p.o)}</dd>`:''}${p.y?`<dt>${p.c==='pe'||p.c==='corp'?'Since':'Founded'}</dt><dd>${esc(p.y)}</dd>`:''}${p.beds?`<dt>Beds</dt><dd>${Number(p.beds).toLocaleString('en-IN')}</dd>`:''}${p.le?`<dt>Entity</dt><dd>${esc(p.le)}</dd>`:''}${p.nabh?`<dt>NABH</dt><dd>Accredited</dd>`:''}</dl>
     ${p.note?`<p>${esc(p.note)}</p>`:''}
-    ${p.src?`<a target="_blank" rel="noopener" href="${esc(p.src)}">Source: ${esc(host)} ↗</a>`:'<p class="nosrc">No public source linked yet; treat as unconfirmed.</p>'}
+    ${p.src?`<a target="_blank" rel="noopener" href="${esc(p.src)}">${p.sl?'Listed at':'Source'}: ${esc(host)} ↗</a>${p.sl?'<p class="nosrc">A directory listing; it does not confirm ownership.</p>':''}`:'<p class="nosrc">No public source linked yet; treat as unconfirmed.</p>'}
     ${alts.length?`<div class="alts"><h3>Not-for-profit nearby</h3>${alts.map(a=>`<button class="alt" data-i="${a.q.i}"><div><b>${esc(a.q.n)}</b><br><span>${esc([a.q.cu,a.q.town].filter(Boolean).join(' · '))}</span></div><i>${dist(a.m)}</i></button>`).join('')}</div>`:''}`;
   card.querySelector('.x').onclick=()=>select(null);
   card.querySelectorAll('.alt').forEach(b=>b.onclick=()=>select(+b.dataset.i,true));
@@ -387,10 +390,10 @@ stats.forEach(b=>b.onclick=()=>{
 });
 document.getElementById('legend').innerHTML=Object.values(CATS).map(C=>`<span><i class="dot ${shapeCls(C)}" style="--c:${css(C.c)}"></i>${C.label}</span>`).join('');
 const bar=document.getElementById('bar');
-['pe','corp','ind','trust'].forEach(k=>{const i=document.createElement('i');i.style.background=css(CATS[k].c);i.style.flexGrow=counts[k];i.title=`${CATS[k].label}: ${counts[k]}`;bar.appendChild(i)});
+['pe','corp','ind','trust','unk'].forEach(k=>{const i=document.createElement('i');i.style.background=css(CATS[k].c);i.style.flexGrow=counts[k];i.title=`${CATS[k].label}: ${counts[k]}`;bar.appendChild(i)});
 document.getElementById('nPe').textContent=counts.pe;
 document.getElementById('nTrust').textContent=counts.trust;
-document.getElementById('nOther').textContent=counts.corp+counts.ind;
+document.getElementById('nOther').textContent=counts.corp+counts.ind+counts.unk;
 
 const uniq=k=>[...new Set(PLACES.map(p=>p[k]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
 const fill=(id,vals)=>{const s=document.getElementById(id);vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=`${v} (${PLACES.filter(p=>p[id==='fArea'?'area':'k']===v).length})`;s.appendChild(o)})};
@@ -401,13 +404,13 @@ const groups={};
   const C=CATS[p.c];
   if(!groups[p.c]){const h=document.createElement('div');h.className='grp';h.style.setProperty('--c',css(C.c));h.innerHTML=`${C.label}<span></span>`;listEl.appendChild(h);groups[p.c]=h} const r=document.createElement('div'); r.className='row'; r.tabIndex=0; r.setAttribute('role','option');
   r.style.setProperty('--c',css(C.c)); r.style.setProperty('--cs',css(C.cs));
-  r.innerHTML=`<i class="dot ${shapeCls(C)}"></i><div><b>${esc(p.n)}</b><span>${esc([p.cu,p.town].filter(Boolean).join(' · '))}${p.o&&(p.c==='pe'||p.c==='corp')?' · '+esc(p.o):''}</span></div>${bedsHtml(p.beds)}`;
+  r.innerHTML=`<i class="dot ${shapeCls(C)}"></i><div><b>${esc(p.n)}</b><span>${esc([p.cu,p.town].filter(Boolean).join(' · '))}${p.o&&(p.c==='pe'||p.c==='corp')?' · '+esc(p.o):''}${p.c==='unk'?' · owner not recorded':''}</span></div>${bedsHtml(p.beds)}`;
   r.onclick=()=>select(p.i,true); r.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(p.i,true)}};
   p.row=r; listEl.appendChild(r);
 });
 const emptyEl=document.createElement('div'); emptyEl.className='empty'; emptyEl.textContent='Nothing matches. Try another search or clear a filter.'; listEl.appendChild(emptyEl);
 const foot=document.createElement('div'); foot.className='foot';
-foot.textContent='Ownership as reported publicly, checked Nov 2026. Private hospitals only; government hospitals are not shown, and this is a selection, not a full register. "PE-backed" includes significant minority stakes and hospitals held through a PE-controlled parent. "Not-for-profit" covers charitable trusts, church missions and co-operatives; "family-owned" covers founding doctors, families and local business groups. Hospitals run under a lease or management contract are listed under their operator. Bed counts are as published. Ownership changes fast; cards link a source where one is public, and say so where none is. This is not a rating of care.';
+foot.textContent='Ownership as reported publicly, checked Nov 2026. Private hospitals only; government hospitals are not shown, and this is a selection, not a full register. "PE-backed" includes significant minority stakes and hospitals held through a PE-controlled parent. "Not-for-profit" covers charitable trusts, church missions and co-operatives; "family-owned" covers founding doctors, families and local business groups; "owner not recorded" marks private hospitals whose owner we have not established. Hospitals run under a lease or management contract are listed under their operator. Bed counts are as published. Ownership changes fast; cards link a source where one is public, and say so where none is. This is not a rating of care.';
 listEl.appendChild(foot);
 const countEl=document.getElementById('count');
 

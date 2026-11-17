@@ -3,7 +3,7 @@
 import json, pathlib, sys
 
 root = pathlib.Path(__file__).parent
-CATS = {"pe", "corp", "ind", "trust"}
+CATS = {"pe", "corp", "ind", "trust", "unk"}
 TYPES = {"Multi-speciality", "Medical college", "Eye care", "Mother & child",
          "Cancer care", "Heart care", "Fertility", "Other speciality"}
 
