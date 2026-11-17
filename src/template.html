@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Which private hospitals in Kerala are private equity–backed, which belong to corporate chains, and which are family-owned or not-for-profit.">
 <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
@@ -140,6 +140,8 @@ h1 em{font-style:italic}
   .legend{display:none}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.dlabel{font:600 10px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#8A8178;pointer-events:none;white-space:nowrap;text-shadow:0 0 3px #FBEEDF,0 0 3px #FBEEDF}
+.mapnote{position:absolute;left:16px;bottom:16px;margin:0;font:12px var(--sans);color:#6F6A64;pointer-events:none}
 </style>
 
 <div class="app">
@@ -286,8 +288,9 @@ map.once('idle',()=>{const a=document.querySelector('.maplibregl-ctrl-attrib');a
 let ready=false;
 const fc=()=>({type:'FeatureCollection',features:PLACES.map(p=>({type:'Feature',id:p.i,
   geometry:{type:'Point',coordinates:[p.ll[1],p.ll[0]]},properties:{i:p.i,c:p.c,o:4-ORDER[p.c],v:visible(p)?1:0}}))});
-fetch('https://tiles.openfreemap.org/styles/positron').then(r=>r.json()).then(st=>{
-  map.once('style.load',()=>{if(ready)return;
+let flat=false;
+const DISTRICTS=/*__DISTRICTS__*/null, TILES=/*__TILES__*/true;
+function setup(){if(ready)return;
     ['pe','ind','corp','trust','unk'].forEach(k=>{const im=icon(k);map.addImage('pin-'+k,{width:im.width,height:im.height,data:new Uint8Array(im.data.buffer)},{pixelRatio:2})});
     map.addSource('places',{type:'geojson',data:fc()});
     const col=['match',['get','c'],'pe',PAL.pe,'ind',PAL.ind,'corp',PAL.corp,'unk',PAL.unk,PAL.trust];
@@ -298,9 +301,25 @@ fetch('https://tiles.openfreemap.org/styles/positron').then(r=>r.json()).then(st
       paint:{'icon-opacity':['case',['==',['get','v'],1],1,.12]}});
     ready=true; render(); if(selected!==null) select(selected,false,true);
     const h=decodeURIComponent(location.hash.slice(1)); const hp=h&&PLACES.find(p=>slug(p.n)===h); if(hp) select(hp.i,true);
+}
+/* fallback when street tiles can't load: district outlines drawn from data shipped in the page */
+function outline(){ flat=true; map.setMaxZoom(12.5);
+  if(!DISTRICTS){document.getElementById('map').insertAdjacentHTML('beforeend','<p class="mapnote">Map tiles didn\'t load. The list still works.</p>');return}
+  map.once('style.load',()=>{setup();
+    DISTRICTS.features.forEach(f=>{const el=document.createElement('div');el.className='dlabel';el.textContent=f.properties.n;
+      new maplibregl.Marker({element:el,anchor:'center'}).setLngLat(f.properties.c).addTo(map)});
+    document.getElementById('map').insertAdjacentHTML('beforeend','<p class="mapnote">District outlines only; streets are not shown in this view.</p>');
   });
-  map.setStyle(paper(st),{diff:false});
-}).catch(()=>{document.getElementById('map').insertAdjacentHTML('beforeend','<p style="position:absolute;inset:auto 16px 16px;font:13px var(--sans);color:var(--graphite)">Map tiles didn\'t load. The list still works.</p>')});
+  map.setStyle({version:8,sources:{d:{type:'geojson',data:DISTRICTS,attribution:'© OpenStreetMap contributors'}},layers:[
+    {id:'bg',type:'background',paint:{'background-color':PAL.water}},
+    {id:'land',type:'fill',source:'d',paint:{'fill-color':PAL.land}},
+    {id:'edge',type:'line',source:'d',paint:{'line-color':'#D9C6AE','line-width':1.2}}]},{diff:false});
+}
+if(TILES){const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),7000);
+  fetch('https://tiles.openfreemap.org/styles/positron',{signal:ac.signal}).then(r=>r.json()).then(st=>{clearTimeout(tm);
+    map.once('style.load',setup); map.setStyle(paper(st),{diff:false});
+  }).catch(outline);
+} else outline();
 
 /* landmarks as markers: hand-drawn, base sits on the real spot, scale with zoom */
 LM.forEach(m=>{
@@ -368,7 +387,7 @@ function select(i,fromList,silent){
   const p=PLACES[i]; p.row&&p.row.classList.add('on');
   const mobile=isMobile();
   showCard(p); highlight(); if(silent)return;
-  const ll=[p.ll[1],p.ll[0]], z=map.getZoom(), zoom=fromList?Math.max(z,13.2):Math.max(z,10.5);
+  const ll=[p.ll[1],p.ll[0]], z=map.getZoom(), zoom=flat?Math.max(z,9.2):fromList?Math.max(z,13.2):Math.max(z,10.5);
   if(mobile){
     map.flyTo({center:ll,zoom,padding:{top:20,bottom:card.offsetHeight+20,left:0,right:0},duration:fromList?1300:700,essential:true});
   } else {
