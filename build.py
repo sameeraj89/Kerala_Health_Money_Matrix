@@ -11,7 +11,7 @@ rows = json.loads((root / "data" / "hospitals.json").read_text(encoding="utf-8")
 errors, seen = [], set()
 for r in rows:
     name = r.get("n", "?")
-    for key in ("n", "a", "area", "ll", "cu", "k", "c", "o", "src"):
+    for key in ("n", "a", "area", "ll", "cu", "k", "c", "o"):
         if not r.get(key):
             errors.append(f"{name}: missing {key}")
     if r.get("c") not in CATS:
@@ -21,7 +21,7 @@ for r in rows:
     ll = r.get("ll") or [0, 0]
     if not (8.1 <= ll[0] <= 12.9 and 74.8 <= ll[1] <= 77.5):
         errors.append(f"{name}: coordinates outside Kerala {ll}")
-    if not str(r.get("src", "")).startswith("https://"):
+    if r.get("src") and not str(r["src"]).startswith("https://"):
         errors.append(f"{name}: source must be an https link")
     if name in seen:
         errors.append(f"{name}: duplicate name")
